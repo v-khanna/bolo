@@ -661,7 +661,7 @@ final class AppState: ObservableObject, @unchecked Sendable {
             toggleKey: toggleShortcutStorageKey,
             copyAgainKey: copyAgainShortcutStorageKey
         )
-        let readSelectionShortcut = Self.loadShortcut(forKey: readSelectionShortcutStorageKey).binding ?? .disabled
+        let readSelectionShortcut = Self.loadShortcut(forKey: readSelectionShortcutStorageKey).binding ?? .defaultReadSelection
         let ttsVoice = AppSettingsStorage.load(account: ttsVoiceStorageKey) ?? "troy"
         let ttsSpeed = UserDefaults.standard.object(forKey: ttsSpeedStorageKey) as? Double ?? 1.0
         let ttsCleanupEnabled = UserDefaults.standard.bool(forKey: ttsCleanupStorageKey)

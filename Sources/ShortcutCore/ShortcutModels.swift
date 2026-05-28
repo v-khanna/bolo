@@ -350,6 +350,17 @@ struct ShortcutBinding: Codable, Hashable, Identifiable, Equatable {
     )
     static let defaultHold = ShortcutPreset.fnKey.binding
     static let defaultToggle = ShortcutPreset.fnKey.binding.withAddedModifiers(.command)
+    /// Bolo: default "Read Selection Aloud" shortcut — ⌥⇧R. A one-shot press
+    /// (like copyAgain), distinct from the Fn-based dictation shortcuts and
+    /// from common system shortcuts.
+    static let defaultReadSelection = ShortcutBinding(
+        keyCode: 15,            // R
+        keyDisplay: "R",
+        modifiers: [.option, .shift],
+        kind: .key,
+        preset: nil,
+        exactModifierKeyCodes: [56, 58]   // left Shift, left Option
+    )
 
     static let modifierKeyCodes: Set<UInt16> = [54, 55, 56, 58, 59, 60, 61, 62, 63]
 

@@ -275,7 +275,7 @@ struct SetupView: View {
                 Text("Welcome to \(AppName.displayName)")
                     .font(.system(size: 30, weight: .bold, design: .rounded))
 
-                Text("Dictate text anywhere on your Mac.\nHold to talk or tap to toggle dictation.")
+                Text("A two-way voice app for your Mac.\nTalk to type anywhere, or select text and have it read aloud.")
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1069,6 +1069,12 @@ struct SetupView: View {
                     }
                 }
                 HowToRow(icon: "doc.on.clipboard", text: "Text is typed at your cursor & copied")
+                if !appState.readSelectionShortcut.isDisabled {
+                    HowToRow(
+                        icon: "speaker.wave.2",
+                        text: "Select text & press \(appState.readSelectionShortcut.displayName) to hear it read aloud"
+                    )
+                }
             }
             .padding(.top, 10)
 
