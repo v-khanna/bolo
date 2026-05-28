@@ -542,6 +542,7 @@ struct GeneralSettingsView: View {
     @StateObject private var githubCache = GitHubMetadataCache.shared
     @ObservedObject private var updateManager = UpdateManager.shared
     private let freeflowRepoURL = URL(string: "https://github.com/zachlatta/freeflow")!
+    private let boloRepoURL = URL(string: "https://github.com/v-khanna/bolo")!
 
     private var appDisplayName: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
@@ -595,6 +596,24 @@ struct GeneralSettingsView: View {
                     Text("v\(appVersion)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+
+                    // Bolo repo (this project)
+                    Button { openURL(boloRepoURL) } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "chevron.left.forwardslash.chevron.right")
+                                .font(.caption2)
+                            Text("v-khanna/bolo")
+                                .font(.system(.caption, design: .monospaced).weight(.semibold))
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.blue)
+                    .padding(.top, 2)
+
+                    Text("Built on FreeFlow (MIT) — credit below")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .padding(.bottom, 2)
 
                     // GitHub card
                     VStack(spacing: 10) {
