@@ -470,7 +470,8 @@ struct WingedRecordingView: View {
                             }
                             CompactWaveformView(
                                 audioLevel: state.audioLevel,
-                                showsActivityPulse: state.phase == .recording || state.phase == .reading
+                                showsActivityPulse: state.phase == .recording || state.phase == .reading,
+                                strongIdle: state.phase == .reading
                             )
                         }
                         .transition(.opacity)
@@ -538,6 +539,9 @@ struct WaveformBar: View {
 struct WaveformView: View {
     let audioLevel: Float
     var showsActivityPulse = false
+    /// Reading: drive a clearly visible traveling wave even when the metered
+    /// level is near silence, so the bars obviously move while speaking.
+    var strongIdle = false
 
     private static let barCount = 9
     private static let multipliers: [CGFloat] = [0.35, 0.55, 0.75, 0.9, 1.0, 0.9, 0.75, 0.55, 0.35]
@@ -584,7 +588,10 @@ struct WaveformView: View {
 
         let saturationRelief = baseAmplitude * (0.74 + pulse)
         let quietPulse = (1.0 - baseAmplitude) * (0.04 + pulse * 0.28)
-        return min(saturationRelief + quietPulse, 1.0)
+        let metered = min(saturationRelief + quietPulse, 1.0)
+        guard strongIdle else { return metered }
+        let idle = Self.multipliers[index] * (0.30 + 0.50 * travelingWave)
+        return min(max(metered, idle), 1.0)
     }
 
     private func barResponse(for index: Int) -> Double {
@@ -603,6 +610,9 @@ struct WaveformView: View {
 struct CompactWaveformView: View {
     let audioLevel: Float
     var showsActivityPulse = false
+    /// Reading: drive a clearly visible traveling wave even when the metered
+    /// level is near silence, so the bars obviously move while speaking.
+    var strongIdle = false
 
     private static let barCount = 5
     private static let multipliers: [CGFloat] = [0.5, 0.75, 1.0, 0.75, 0.5]
@@ -642,7 +652,10 @@ struct CompactWaveformView: View {
         let pulse = traveling * 0.22 + shimmer * 0.06
         let saturationRelief = base * (0.74 + pulse)
         let quietPulse = (1.0 - base) * (0.04 + pulse * 0.28)
-        return min(saturationRelief + quietPulse, 1.0)
+        let metered = min(saturationRelief + quietPulse, 1.0)
+        guard strongIdle else { return metered }
+        let idle = Self.multipliers[index] * (0.30 + 0.50 * traveling)
+        return min(max(metered, idle), 1.0)
     }
 }
 
@@ -916,7 +929,8 @@ struct RecordingOverlayView: View {
                         } else if showsLiveRecordingContent {
                             WaveformView(
                                 audioLevel: state.audioLevel,
-                                showsActivityPulse: state.phase == .recording
+                                showsActivityPulse: state.phase == .recording || state.phase == .reading,
+                                strongIdle: state.phase == .reading
                             )
                                 .transition(.opacity)
                         } else {
