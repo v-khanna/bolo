@@ -35,6 +35,34 @@ Debug            (dev builds only — unchanged)
 - **About sits at the top, above a divider** (user preference). Setup is the
   first *functional* item.
 
+## Sidebar icons (Cotypist-style tinted badges)
+
+Each sidebar row gets a colored rounded-square icon badge — a white SF Symbol
+centered on a filled `RoundedRectangle(cornerRadius:, style: .continuous)` with a
+per-item tint color — followed by the label. This matches Cotypist and reads as
+noticeably more polished than flat monochrome glyphs.
+
+- Badge: ~20–22pt square, continuous corner radius (~5–6pt), white symbol
+  (`.font(.system(size: ~12, weight: .semibold))`), tint fill.
+- The selected row keeps the standard list selection highlight; the badge color
+  is constant regardless of selection.
+
+Per-item icon + tint:
+
+| Item       | SF Symbol                  | Tint    |
+|------------|----------------------------|---------|
+| About      | `info.circle.fill`         | gray    |
+| Setup      | `checkmark.seal.fill`      | orange  |
+| General    | `gearshape.fill`           | graphite|
+| Dictation  | `mic.fill`                 | red     |
+| Read Aloud | `speaker.wave.2.fill`      | purple  |
+| Run Log    | `clock.arrow.circlepath`   | teal    |
+| Debug      | `wrench.and.screwdriver.fill` | brown |
+
+Colors are a tasteful default palette and easy to retune. Implementation:
+`SettingsTab` gains a `tint: Color` (or NSColor) alongside the existing `icon`;
+a small `SidebarIconBadge` view renders the badge and is reused for every row.
+
 ## Per-page contents
 
 ### About  (identity only)
@@ -136,10 +164,11 @@ cleanup is OFF, enabling expressive implies running the (augmented) pass.
 ## Implementation mapping (for the plan)
 
 - **`SettingsTab` enum** (`AppState.swift`) becomes the single source of truth
-  for sidebar order + labels + icons. New cases: `.about`, `.setup`,
-  `.readAloud`; rename `.dictation` stays, `.voice` is removed (its API-key card
-  moves to General, its read-aloud cards move to Read Aloud). Divider rendered
-  after `.about`.
+  for sidebar order + labels + icons + tint colors. New cases: `.about`,
+  `.setup`, `.readAloud`; `.dictation` stays, `.voice` is removed (its API-key
+  card moves to General, its read-aloud cards move to Read Aloud). Divider
+  rendered after `.about`. A reusable `SidebarIconBadge` view renders the tinted
+  rounded-square icon for every row (see "Sidebar icons").
 - **Retire the `CardGroup` switch** in `GeneralSettingsView`. Split into focused
   views: `AboutSettingsView`, `SetupSettingsView`, `GeneralSettingsView`
   (slimmed), `DictationSettingsView`, `ReadAloudSettingsView`. The settings
