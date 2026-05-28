@@ -2907,6 +2907,7 @@ struct AboutSettingsView: View {
     @StateObject private var boloGithubCache = GitHubMetadataCache.bolo
     private let freeflowRepoURL = URL(string: "https://github.com/zachlatta/freeflow")!
     private let boloRepoURL = URL(string: "https://github.com/v-khanna/bolo")!
+    private let boloLocalURL = URL(string: "https://github.com/v-khanna/bolo-local")!
 
     private var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
@@ -2954,12 +2955,53 @@ struct AboutSettingsView: View {
                 SettingsCard("About Bolo", icon: "info.circle") {
                     aboutSection
                 }
+
+                SettingsCard("On-Device & Roadmap", icon: "cpu") {
+                    onDeviceSection
+                }
             }
             .padding(24)
         }
         .onAppear {
             Task { await githubCache.fetchIfNeeded() }
             Task { await boloGithubCache.fetchIfNeeded() }
+        }
+    }
+
+    private var onDeviceSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Run read-aloud on-device")
+                    .font(.callout.weight(.semibold))
+                Text("Bolo uses fast cloud voices by default. Want read-aloud entirely on your Mac — no cloud, no API key? Bolo Local runs a from-scratch MLX-Swift TTS engine (a ground-up port of Chatterbox-Turbo). ~3 GB download, more RAM, slower than cloud — but 100% offline.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button {
+                    openURL(boloLocalURL)
+                } label: {
+                    Label("Get Bolo Local", systemImage: "arrow.down.circle")
+                        .font(.caption.weight(.medium))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.blue)
+                .padding(.top, 2)
+            }
+
+            Divider()
+
+            HStack(alignment: .top, spacing: 8) {
+                Text("Coming soon")
+                    .font(.caption2.weight(.bold))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(Color.orange.opacity(0.18)))
+                    .foregroundStyle(.orange)
+                Text("On-device dictation (speech-to-text), so the talk half can run fully local too — not just listen.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 
