@@ -48,7 +48,7 @@ enum BoloMenuBarGlyph {
     static let image: NSImage? = {
         guard let url = Bundle.main.url(forResource: "MenuBarGlyph", withExtension: "png"),
               let img = NSImage(contentsOf: url) else { return nil }
-        let targetHeight: CGFloat = 18
+        let targetHeight: CGFloat = 20
         let ratio = img.size.height > 0 ? img.size.width / img.size.height : 1
         img.size = NSSize(width: targetHeight * ratio, height: targetHeight)
         img.isTemplate = true
