@@ -429,7 +429,11 @@ struct SettingsView: View {
             Group {
                 switch appState.selectedSettingsTab {
                 case .general, .none:
-                    GeneralSettingsView()
+                    GeneralSettingsView(group: .general)
+                case .voice:
+                    GeneralSettingsView(group: .voice)
+                case .dictation:
+                    GeneralSettingsView(group: .dictation)
                 case .prompts:
                     PromptsSettingsView()
                 case .macros:
@@ -513,6 +517,9 @@ struct DebugSettingsView: View {
 // MARK: - General Settings
 
 struct GeneralSettingsView: View {
+    enum CardGroup { case general, voice, dictation }
+    var group: CardGroup = .general
+
     @EnvironmentObject var appState: AppState
     @Environment(\.openURL) private var openURL
     @AppStorage("show_menu_bar_icon") private var showMenuBarIcon = true
@@ -574,6 +581,7 @@ struct GeneralSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
+                if group == .general {
                 // App branding header
                 VStack(spacing: 12) {
                     Image(nsImage: NSApp.applicationIconImage)
@@ -690,51 +698,57 @@ struct GeneralSettingsView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.top, 4)
                 .padding(.bottom, 4)
+                }
 
-                SettingsCard("App", icon: "power") {
-                    startupSection
-                }
-                SettingsCard("Updates", icon: "arrow.triangle.2.circlepath") {
-                    updatesSection
-                }
-                SettingsCard("API Key", icon: "key.fill") {
-                    apiKeySection
-                }
-                SettingsCard("Output Language", icon: "globe") {
-                    outputLanguageSection
-                }
-                SettingsCard("Read Aloud", icon: "speaker.wave.2.fill") {
-                    readAloudSection
-                }
-                SettingsCard("Dictation Shortcuts", icon: "keyboard.fill") {
-                    hotkeySection
-                }
-                SettingsCard("Audio During Dictation", icon: "speaker.slash.fill") {
-                    dictationAudioSection
-                }
-                SettingsCard("Recording Overlay", icon: "rectangle.dashed") {
-                    overlaySection
-                }
-                SettingsCard("Edit Mode", icon: "pencil") {
-                    commandModeSection
-                }
-                SettingsCard("Clipboard", icon: "doc.on.clipboard") {
-                    clipboardSection
-                }
-                SettingsCard("Microphone", icon: "mic.fill") {
-                    microphoneSection
-                }
-                SettingsCard("Sound Volume", icon: "speaker.wave.2.fill") {
-                    soundVolumeSection
-                }
-                SettingsCard("Custom Vocabulary", icon: "text.book.closed.fill") {
-                    vocabularySection
-                }
-                SettingsCard("Permissions", icon: "lock.shield.fill") {
-                    permissionsSection
-                }
-                SettingsCard("Build", icon: "info.circle.fill") {
-                    buildInfoSection
+                switch group {
+                case .general:
+                    SettingsCard("App", icon: "power") {
+                        startupSection
+                    }
+                    SettingsCard("Updates", icon: "arrow.triangle.2.circlepath") {
+                        updatesSection
+                    }
+                    SettingsCard("Permissions", icon: "lock.shield.fill") {
+                        permissionsSection
+                    }
+                    SettingsCard("Build", icon: "info.circle.fill") {
+                        buildInfoSection
+                    }
+                case .voice:
+                    SettingsCard("API Key", icon: "key.fill") {
+                        apiKeySection
+                    }
+                    SettingsCard("Read Aloud", icon: "speaker.wave.2.fill") {
+                        readAloudSection
+                    }
+                    SettingsCard("Output Language", icon: "globe") {
+                        outputLanguageSection
+                    }
+                case .dictation:
+                    SettingsCard("Dictation Shortcuts", icon: "keyboard.fill") {
+                        hotkeySection
+                    }
+                    SettingsCard("Audio During Dictation", icon: "speaker.slash.fill") {
+                        dictationAudioSection
+                    }
+                    SettingsCard("Recording Overlay", icon: "rectangle.dashed") {
+                        overlaySection
+                    }
+                    SettingsCard("Edit Mode", icon: "pencil") {
+                        commandModeSection
+                    }
+                    SettingsCard("Clipboard", icon: "doc.on.clipboard") {
+                        clipboardSection
+                    }
+                    SettingsCard("Microphone", icon: "mic.fill") {
+                        microphoneSection
+                    }
+                    SettingsCard("Sound Volume", icon: "speaker.wave.2.fill") {
+                        soundVolumeSection
+                    }
+                    SettingsCard("Custom Vocabulary", icon: "text.book.closed.fill") {
+                        vocabularySection
+                    }
                 }
             }
             .padding(24)
