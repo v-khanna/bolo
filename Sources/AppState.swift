@@ -235,6 +235,7 @@ final class AppState: ObservableObject, @unchecked Sendable {
     private let ttsVoiceStorageKey = "tts_voice"
     private let ttsSpeedStorageKey = "tts_speed"
     private let ttsCleanupStorageKey = "tts_cleanup"
+    private let ttsExpressiveStorageKey = "tts_expressive"
     private let savedHoldCustomShortcutStorageKey = "saved_hold_custom_shortcut"
     private let savedToggleCustomShortcutStorageKey = "saved_toggle_custom_shortcut"
     private let savedCopyAgainCustomShortcutStorageKey = "saved_copy_again_custom_shortcut"
@@ -411,6 +412,15 @@ final class AppState: ObservableObject, @unchecked Sendable {
     @Published var ttsCleanupEnabled: Bool {
         didSet {
             UserDefaults.standard.set(ttsCleanupEnabled, forKey: ttsCleanupStorageKey)
+        }
+    }
+
+    /// Bolo addition: expressive narration — lets the cleanup LLM insert
+    /// occasional Orpheus emotion tags (<laugh>, <sigh>, …). Rides the cleanup
+    /// pass; off by default.
+    @Published var ttsExpressiveEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(ttsExpressiveEnabled, forKey: ttsExpressiveStorageKey)
         }
     }
 
@@ -681,6 +691,7 @@ final class AppState: ObservableObject, @unchecked Sendable {
         let ttsVoice = AppSettingsStorage.load(account: ttsVoiceStorageKey) ?? "troy"
         let ttsSpeed = UserDefaults.standard.object(forKey: ttsSpeedStorageKey) as? Double ?? 1.0
         let ttsCleanupEnabled = UserDefaults.standard.bool(forKey: ttsCleanupStorageKey)
+        let ttsExpressiveEnabled = UserDefaults.standard.bool(forKey: ttsExpressiveStorageKey)
         let savedHoldCustomShortcut = Self.loadSavedCustomShortcut(
             forKey: savedHoldCustomShortcutStorageKey,
             fallback: shortcuts.hold.isCustom ? shortcuts.hold : nil
@@ -779,6 +790,7 @@ final class AppState: ObservableObject, @unchecked Sendable {
         self.ttsVoice = ttsVoice
         self.ttsSpeed = ttsSpeed
         self.ttsCleanupEnabled = ttsCleanupEnabled
+        self.ttsExpressiveEnabled = ttsExpressiveEnabled
         self.savedHoldCustomShortcut = savedHoldCustomShortcut.binding
         self.savedToggleCustomShortcut = savedToggleCustomShortcut.binding
         self.savedCopyAgainCustomShortcut = savedCopyAgainCustomShortcut.binding

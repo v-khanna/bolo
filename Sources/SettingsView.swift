@@ -655,6 +655,8 @@ struct GeneralSettingsView: View {
     @State private var advancedProviderSettingsExpanded = false
     @State private var isValidatingKey = false
     @State private var keyValidationError: String?
+    @State private var capturingReadShortcut = false
+    @State private var readSelectionValidationMessage: String?
     @State private var keyValidationSuccess = false
     @State private var customVocabularyInput: String = ""
     @State private var micPermissionGranted = false
@@ -706,28 +708,27 @@ struct GeneralSettingsView: View {
                     SettingsCard("App", icon: "power") {
                         startupSection
                     }
+                    SettingsCard("API Key", icon: "key.fill") {
+                        apiKeySection
+                    }
                     SettingsCard("Updates", icon: "arrow.triangle.2.circlepath") {
                         updatesSection
                     }
                     SettingsCard("Permissions", icon: "lock.shield.fill") {
                         permissionsSection
                     }
+                    SettingsCard("Sound Volume", icon: "speaker.wave.2.fill") {
+                        soundVolumeSection
+                    }
                     SettingsCard("Build", icon: "info.circle.fill") {
                         buildInfoSection
-                    }
-                case .readAloud:
-                    SettingsCard("API Key", icon: "key.fill") {
-                        apiKeySection
-                    }
-                    SettingsCard("Read Aloud", icon: "speaker.wave.2.fill") {
-                        readAloudSection
-                    }
-                    SettingsCard("Output Language", icon: "globe") {
-                        outputLanguageSection
                     }
                 case .dictation:
                     SettingsCard("Dictation Shortcuts", icon: "keyboard.fill") {
                         hotkeySection
+                    }
+                    SettingsCard("Microphone", icon: "mic.fill") {
+                        microphoneSection
                     }
                     SettingsCard("Audio During Dictation", icon: "speaker.slash.fill") {
                         dictationAudioSection
@@ -741,14 +742,20 @@ struct GeneralSettingsView: View {
                     SettingsCard("Clipboard", icon: "doc.on.clipboard") {
                         clipboardSection
                     }
-                    SettingsCard("Microphone", icon: "mic.fill") {
-                        microphoneSection
-                    }
-                    SettingsCard("Sound Volume", icon: "speaker.wave.2.fill") {
-                        soundVolumeSection
+                    SettingsCard("Output Language", icon: "globe") {
+                        outputLanguageSection
                     }
                     SettingsCard("Custom Vocabulary", icon: "text.book.closed.fill") {
                         vocabularySection
+                    }
+                    PromptsSettingsView()
+                    VoiceMacrosSettingsView()
+                case .readAloud:
+                    SettingsCard("Read Selection Shortcut", icon: "command") {
+                        readShortcutSection
+                    }
+                    SettingsCard("Read Aloud", icon: "speaker.wave.2.fill") {
+                        readAloudSection
                     }
                 }
             }
@@ -1082,8 +1089,43 @@ struct GeneralSettingsView: View {
 
     // MARK: Read Aloud (Bolo)
 
+    private var readShortcutSection: some View {
+        ShortcutRoleSection(
+            role: .readSelection,
+            selection: appState.readSelectionShortcut,
+            validationMessage: readSelectionValidationMessage,
+            isCapturing: Binding(
+                get: { capturingReadShortcut },
+                set: { capturing in
+                    capturingReadShortcut = capturing
+                    if capturing {
+                        appState.suspendHotkeyMonitoringForShortcutCapture()
+                    } else {
+                        appState.resumeHotkeyMonitoringAfterShortcutCapture()
+                    }
+                }
+            ),
+            onSelect: { binding in
+                readSelectionValidationMessage = appState.setShortcut(binding, for: .readSelection)
+            }
+        )
+    }
+
     private var readAloudSection: some View {
         VStack(alignment: .leading, spacing: 10) {
+            if appState.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .font(.caption)
+                    Text("Add your Groq API key to use read-aloud.")
+                        .font(.caption)
+                    Button("Configure") { appState.selectedSettingsTab = .general }
+                        .font(.caption)
+                }
+                .padding(.bottom, 4)
+            }
+
             HStack {
                 Picker("Voice", selection: $appState.ttsVoice) {
                     ForEach(AppState.ttsVoiceOptions, id: \.self) { voice in
@@ -1121,7 +1163,13 @@ struct GeneralSettingsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            Text("Select text in any app and press your Read Selection shortcut to hear it. Uses your Groq API key. Set the shortcut under Dictation Shortcuts below.")
+            Toggle("Expressive narration", isOn: $appState.ttsExpressiveEnabled)
+                .disabled(!appState.ttsCleanupEnabled)
+            Text("Lets the cleanup AI add occasional emotion (laughs, sighs) where the text calls for it. Requires “Clean up text before speaking.”")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Text("Select text in any app and press your Read Selection shortcut (above) to hear it. Uses your Groq API key.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -1545,16 +1593,14 @@ struct PromptsSettingsView: View {
     @State private var contextTestPrompt: String? = nil
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                SettingsCard("System Prompt", icon: "text.bubble.fill") {
-                    systemPromptSection
-                }
-                SettingsCard("Context Prompt", icon: "eye.fill") {
-                    contextPromptSection
-                }
+        // Rendered inline on the Dictation page, which provides the ScrollView.
+        VStack(spacing: 20) {
+            SettingsCard("System Prompt", icon: "text.bubble.fill") {
+                systemPromptSection
             }
-            .padding(24)
+            SettingsCard("Context Prompt", icon: "eye.fill") {
+                contextPromptSection
+            }
         }
         .onAppear {
             customSystemPromptInput = appState.customSystemPrompt.isEmpty
@@ -2684,13 +2730,11 @@ struct VoiceMacrosSettingsView: View {
     @State private var editingMacro: VoiceMacro?
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                SettingsCard("Voice Macros", icon: "music.mic") {
-                    macrosSection
-                }
+        // Rendered inline on the Dictation page, which provides the ScrollView.
+        VStack(spacing: 20) {
+            SettingsCard("Voice Macros", icon: "music.mic") {
+                macrosSection
             }
-            .padding(24)
         }
         .sheet(isPresented: $showingAddMacro, onDismiss: { editingMacro = nil }) {
             VoiceMacroEditorView(isPresented: $showingAddMacro, macro: $editingMacro)
