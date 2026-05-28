@@ -28,13 +28,32 @@ struct MenuBarLabel: View {
     }
 
     var body: some View {
-        if AppBuild.isDevBundle && !appState.isRecording && !appState.isTranscribing {
-            Image(nsImage: StampedMenuBarIcon.templateImage)
-                .renderingMode(.template)
+        if appState.isRecording {
+            Image(systemName: "record.circle")
+        } else if appState.isTranscribing {
+            Image(systemName: "ellipsis.circle")
+        } else if let glyph = BoloMenuBarGlyph.image {
+            // Bolo's mic + sound-waves mark (bundled PNG, rendered as a template
+            // so the menu bar tints it for light/dark).
+            Image(nsImage: glyph).renderingMode(.template)
         } else {
             Image(systemName: iconName)
         }
     }
+}
+
+/// Loads Bolo's menu-bar glyph (Resources/MenuBarGlyph.png) sized for the menu
+/// bar and flagged as a template image.
+enum BoloMenuBarGlyph {
+    static let image: NSImage? = {
+        guard let url = Bundle.main.url(forResource: "MenuBarGlyph", withExtension: "png"),
+              let img = NSImage(contentsOf: url) else { return nil }
+        let targetHeight: CGFloat = 18
+        let ratio = img.size.height > 0 ? img.size.width / img.size.height : 1
+        img.size = NSSize(width: targetHeight * ratio, height: targetHeight)
+        img.isTemplate = true
+        return img
+    }()
 }
 
 enum StampedMenuBarIcon {
