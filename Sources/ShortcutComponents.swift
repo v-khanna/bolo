@@ -97,33 +97,53 @@ struct ShortcutRoleSection: View {
     @Binding var isCapturing: Bool
     let onSelect: (ShortcutBinding) -> Void
 
+    @State private var captureBackend: LocalShortcutCaptureBackend?
+    @State private var captureInputState = ShortcutInputState()
+    @State private var currentBinding: ShortcutBinding?
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(role.title)
-                .font(.subheadline.weight(.semibold))
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                Text(role.title)
+                    .font(.subheadline.weight(.semibold))
 
-            VStack(spacing: 6) {
-                ShortcutPresetRow(
-                    title: "Disabled",
-                    isSelected: selection.isDisabled,
-                    action: { onSelect(.disabled) }
-                )
+                Spacer()
 
-                ForEach(ShortcutPreset.allCases) { preset in
-                    ShortcutPresetRow(
-                        title: preset.title,
-                        isSelected: selection == preset.binding,
-                        action: { onSelect(preset.binding) }
-                    )
+                if isCapturing {
+                    Text(currentBinding?.displayName ?? "Press shortcut…")
+                        .font(.system(.callout, design: .monospaced).weight(.semibold))
+                        .foregroundStyle(.blue)
+                    Button("Done") { finishCapture() }
+                        .buttonStyle(.bordered)
+                    Button("Cancel") { cancelCapture() }
+                        .buttonStyle(.plain)
+                } else {
+                    Menu {
+                        Button("Disabled") { onSelect(.disabled) }
+                        Divider()
+                        ForEach(ShortcutPreset.allCases) { preset in
+                            Button(preset.title) { onSelect(preset.binding) }
+                        }
+                        if let saved = appState.savedCustomShortcut(for: role) {
+                            Divider()
+                            Button(saved.displayName) { onSelect(saved) }
+                        }
+                        Divider()
+                        Button("Record Custom…") { startCapture() }
+                    } label: {
+                        Text(selection.selectionTitle)
+                            .font(selection.isCustom ? .system(.body, design: .monospaced) : .body)
+                    }
+                    .fixedSize()
                 }
+            }
 
-                ShortcutCaptureRow(
-                    savedBinding: appState.savedCustomShortcut(for: role),
-                    isSelected: selection.isCustom,
-                    isCapturing: $isCapturing,
-                    onSelectSaved: onSelect,
-                    onCapture: onSelect
-                )
+            if isCapturing {
+                Text(currentBinding == nil
+                     ? "Press and hold the shortcut you want."
+                     : "Press Esc or Enter to save.")
+                    .font(.caption)
+                    .foregroundStyle(.blue)
             }
 
             if let validationMessage, !validationMessage.isEmpty {
@@ -132,113 +152,7 @@ struct ShortcutRoleSection: View {
                     .foregroundStyle(.red)
             }
         }
-    }
-}
-
-private struct ShortcutPresetRow: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(isSelected ? .blue : .secondary)
-                Text(title)
-                    .foregroundStyle(.primary)
-                Spacer()
-            }
-            .padding(12)
-            .background(isSelected ? Color.blue.opacity(0.1) : Color(nsColor: .controlBackgroundColor))
-            .cornerRadius(8)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 1.5)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-private struct ShortcutCaptureRow: View {
-    let savedBinding: ShortcutBinding?
-    let isSelected: Bool
-    @Binding var isCapturing: Bool
-    let onSelectSaved: (ShortcutBinding) -> Void
-    let onCapture: (ShortcutBinding) -> Void
-
-    @State private var captureBackend: LocalShortcutCaptureBackend?
-    @State private var captureInputState = ShortcutInputState()
-    @State private var currentBinding: ShortcutBinding?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 10) {
-                Button {
-                    if let savedBinding {
-                        onSelectSaved(savedBinding)
-                    } else if !isCapturing {
-                        startCapture()
-                    }
-                } label: {
-                    HStack(alignment: .center, spacing: 10) {
-                        Image(systemName: isSelected ? "checkmark.circle.fill" : (savedBinding == nil ? "plus.circle" : "circle"))
-                            .foregroundStyle(isSelected ? .blue : .secondary)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(displayedBindingName)
-                                .font(displayedBindingUsesMonospace ? .system(.body, design: .monospaced).weight(.semibold) : .body)
-                                .foregroundStyle(.primary)
-                            Text(displayedBindingSubtitle)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Spacer()
-                    }
-                    .padding(12)
-                    .background(isSelected ? Color.blue.opacity(0.1) : Color(nsColor: .controlBackgroundColor))
-                    .cornerRadius(8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 1.5)
-                    )
-                }
-                .buttonStyle(.plain)
-                .disabled(isCapturing)
-
-                Button(isCapturing ? "Done" : "Record…") {
-                    if isCapturing {
-                        finishCapture()
-                    } else {
-                        startCapture()
-                    }
-                }
-                .buttonStyle(.bordered)
-
-                if isCapturing {
-                    Button("Cancel") {
-                        cancelCapture()
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-
-            if isCapturing {
-                Label(
-                    currentBinding == nil
-                        ? "Press and hold the shortcut you want."
-                        : "Press Esc or Enter to save.",
-                    systemImage: "keyboard"
-                )
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.blue)
-            }
-        }
-        .onDisappear {
-            stopCapture(clearCaptureState: true)
-        }
+        .onDisappear { stopCapture(clearCaptureState: true) }
     }
 
     private func startCapture() {
@@ -300,7 +214,7 @@ private struct ShortcutCaptureRow: View {
             cancelCapture()
             return
         }
-        onCapture(currentBinding)
+        onSelect(currentBinding)
         stopCapture(clearCaptureState: true)
     }
 
@@ -316,26 +230,5 @@ private struct ShortcutCaptureRow: View {
         if clearCaptureState {
             isCapturing = false
         }
-    }
-
-    private var displayedBindingName: String {
-        if let currentBinding {
-            currentBinding.displayName
-        } else if let savedBinding {
-            savedBinding.displayName
-        } else {
-            "Custom Shortcut"
-        }
-    }
-
-    private var displayedBindingSubtitle: String {
-        if isCapturing {
-            return currentBinding == nil ? "Recording shortcut…" : "Recorded shortcut"
-        }
-        return savedBinding == nil ? "Record any key combo." : "Saved custom shortcut"
-    }
-
-    private var displayedBindingUsesMonospace: Bool {
-        currentBinding != nil || savedBinding != nil
     }
 }
