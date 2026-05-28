@@ -486,6 +486,7 @@ private struct SettingsSidebarRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 6)
         .padding(.horizontal, 10)
+        .contentShape(Rectangle())
     }
 }
 

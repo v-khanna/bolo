@@ -608,7 +608,7 @@ final class AppState: ObservableObject, @unchecked Sendable {
     @Published var hasAccessibility = false
     @Published var hotkeyMonitoringErrorMessage: String?
     @Published var isDebugOverlayActive = false
-    @Published var selectedSettingsTab: SettingsTab? = .general
+    @Published var selectedSettingsTab: SettingsTab? = .about
     @Published var pipelineHistory: [PipelineHistoryItem] = []
     @Published var debugStatusMessage = "Idle"
     @Published var debugShowsUpdateReminderAfterDictation = false
