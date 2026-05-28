@@ -114,10 +114,21 @@ Rules:
 Return only the cleaned text.
 """
 
+    /// Appended to the normalize prompt when expressive narration is on.
+    private static let expressiveSuffix = """
+
+
+EXPRESSIVE MODE: You MAY insert these emotion tags, but only sparingly and only where the text genuinely calls for it: <laugh>, <sigh>, <gasp>, <groan>, <yawn>, <sniffle>, <cough>. Use at most a few in the whole passage. Never change wording; only add tags. If unsure, add nothing.
+"""
+
     /// Rewrite `text` into a TTS-friendly form via Groq chat. Returns the
     /// cleaned text, or the ORIGINAL text on any failure — cleanup must never
-    /// block reading.
-    func normalizeForSpeech(text: String, apiKey: String) async -> String {
+    /// block reading. When `expressive` is true, the model may add a few
+    /// Orpheus emotion tags.
+    func normalizeForSpeech(text: String, apiKey: String, expressive: Bool = false) async -> String {
+        let systemPrompt = expressive
+            ? (Self.normalizeSystemPrompt + Self.expressiveSuffix)
+            : Self.normalizeSystemPrompt
         guard let url = URL(string: "https://api.groq.com/openai/v1/chat/completions") else { return text }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
@@ -127,7 +138,7 @@ Return only the cleaned text.
             "model": Self.normalizeModel,
             "temperature": 0.0,
             "messages": [
-                ["role": "system", "content": Self.normalizeSystemPrompt],
+                ["role": "system", "content": systemPrompt],
                 ["role": "user", "content": text],
             ],
         ]

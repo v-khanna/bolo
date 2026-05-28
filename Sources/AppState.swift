@@ -1770,12 +1770,14 @@ final class AppState: ObservableObject, @unchecked Sendable {
         let voice = ttsVoice
         let speed = ttsSpeed
         let cleanup = ttsCleanupEnabled
-        if cleanup {
+        let expressive = ttsExpressiveEnabled
+        if cleanup || expressive {
             // Normalize the text for speech first (expand abbreviations, strip
-            // page-number junk, etc.), then speak. Cleanup failure falls back
-            // to the original text inside normalizeForSpeech.
+            // page-number junk, etc.; optionally add emotion tags), then speak.
+            // Cleanup failure falls back to the original text inside
+            // normalizeForSpeech.
             Task { @MainActor in
-                let cleaned = await SpeechSynthesisService.shared.normalizeForSpeech(text: text, apiKey: key)
+                let cleaned = await SpeechSynthesisService.shared.normalizeForSpeech(text: text, apiKey: key, expressive: expressive)
                 guard self.isReadingAloud else { return }   // user stopped during cleanup
                 SpeechSynthesisService.shared.speak(text: cleaned, apiKey: key, voice: voice, speed: speed)
             }
