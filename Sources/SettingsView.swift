@@ -407,7 +407,7 @@ struct SettingsView: View {
                     Button {
                         appState.selectedSettingsTab = tab
                     } label: {
-                        SettingsSidebarRow(title: tab.title, icon: tab.icon)
+                        SettingsSidebarRow(title: tab.title, icon: tab.icon, tint: tab.tint)
                             .background(
                                 RoundedRectangle(cornerRadius: 6)
                                     .fill(appState.selectedSettingsTab == tab
@@ -416,6 +416,10 @@ struct SettingsView: View {
                             )
                     }
                     .buttonStyle(.plain)
+
+                    if tab.showsDividerAfter {
+                        Divider().padding(.vertical, 4)
+                    }
                 }
 
                 Spacer()
@@ -428,16 +432,16 @@ struct SettingsView: View {
 
             Group {
                 switch appState.selectedSettingsTab {
-                case .general, .none:
-                    GeneralSettingsView(group: .general)
-                case .voice:
-                    GeneralSettingsView(group: .voice)
+                case .about, .none:
+                    AboutSettingsView()
+                case .setup:
+                    SetupSettingsView()
+                case .general:
+                    GeneralSettingsView(page: .general)
                 case .dictation:
-                    GeneralSettingsView(group: .dictation)
-                case .prompts:
-                    PromptsSettingsView()
-                case .macros:
-                    VoiceMacrosSettingsView()
+                    GeneralSettingsView(page: .dictation)
+                case .readAloud:
+                    GeneralSettingsView(page: .readAloud)
                 case .runLog:
                     RunLogView()
                 case .debug:
@@ -449,24 +453,38 @@ struct SettingsView: View {
     }
 }
 
+private struct SidebarIconBadge: View {
+    let systemName: String
+    let tint: Color
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 5, style: .continuous)
+            .fill(tint)
+            .frame(width: 20, height: 20)
+            .overlay(
+                Image(systemName: systemName)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white)
+            )
+    }
+}
+
 private struct SettingsSidebarRow: View {
     let title: String
     let icon: String
+    let tint: Color
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 13, weight: .regular))
-                .frame(width: 16, height: 16, alignment: .center)
-                .foregroundStyle(.primary)
+            SidebarIconBadge(systemName: icon, tint: tint)
 
             Text(title)
                 .font(.body)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(height: 16)
+        .frame(height: 20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 8)
+        .padding(.vertical, 6)
         .padding(.horizontal, 10)
     }
 }
@@ -621,8 +639,8 @@ struct GitHubRepoCard: View {
 }
 
 struct GeneralSettingsView: View {
-    enum CardGroup { case general, voice, dictation }
-    var group: CardGroup = .general
+    enum Page { case general, dictation, readAloud }
+    var page: Page = .general
 
     @EnvironmentObject var appState: AppState
     @Environment(\.openURL) private var openURL
@@ -687,7 +705,7 @@ struct GeneralSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                if group == .general {
+                if page == .general {
                 // App branding header
                 VStack(spacing: 12) {
                     Image(nsImage: NSApp.applicationIconImage)
@@ -729,7 +747,7 @@ struct GeneralSettingsView: View {
                 .padding(.bottom, 4)
                 }
 
-                switch group {
+                switch page {
                 case .general:
                     SettingsCard("About Bolo", icon: "info.circle") {
                         aboutSection
@@ -746,7 +764,7 @@ struct GeneralSettingsView: View {
                     SettingsCard("Build", icon: "info.circle.fill") {
                         buildInfoSection
                     }
-                case .voice:
+                case .readAloud:
                     SettingsCard("API Key", icon: "key.fill") {
                         apiKeySection
                     }
@@ -2899,3 +2917,7 @@ struct VoiceMacroEditorView: View {
         }
     }
 }
+
+// Temporary stubs — replaced in Phase 2/3 of the Settings IA plan.
+struct AboutSettingsView: View { var body: some View { Text("About — TODO") } }
+struct SetupSettingsView: View { var body: some View { Text("Setup — TODO") } }

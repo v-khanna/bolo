@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import AppKit
+import SwiftUI
 import AVFoundation
 import ServiceManagement
 import ApplicationServices
@@ -21,11 +22,11 @@ struct PrecomputedMacro {
 }
 
 enum SettingsTab: String, CaseIterable, Identifiable {
+    case about
+    case setup
     case general
-    case voice
     case dictation
-    case prompts
-    case macros
+    case readAloud
     case runLog
     case debug
 
@@ -39,11 +40,11 @@ enum SettingsTab: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .about: return "About Bolo"
+        case .setup: return "Setup"
         case .general: return "General"
-        case .voice: return "Voice"
         case .dictation: return "Dictation"
-        case .prompts: return "Prompts"
-        case .macros: return "Voice Macros"
+        case .readAloud: return "Read Aloud"
         case .runLog: return "Run Log"
         case .debug: return "Debug"
         }
@@ -51,15 +52,30 @@ enum SettingsTab: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .general: return "gearshape"
-        case .voice: return "speaker.wave.2"
-        case .dictation: return "keyboard"
-        case .prompts: return "text.bubble"
-        case .macros: return "music.mic"
+        case .about: return "info.circle.fill"
+        case .setup: return "checkmark.seal.fill"
+        case .general: return "gearshape.fill"
+        case .dictation: return "mic.fill"
+        case .readAloud: return "speaker.wave.2.fill"
         case .runLog: return "clock.arrow.circlepath"
-        case .debug: return "wrench.and.screwdriver"
+        case .debug: return "wrench.and.screwdriver.fill"
         }
     }
+
+    var tint: Color {
+        switch self {
+        case .about: return .gray
+        case .setup: return .orange
+        case .general: return Color(nsColor: .darkGray)
+        case .dictation: return .red
+        case .readAloud: return .purple
+        case .runLog: return .teal
+        case .debug: return .brown
+        }
+    }
+
+    /// A divider is drawn in the sidebar after this item.
+    var showsDividerAfter: Bool { self == .about }
 }
 
 enum AppBuild {
