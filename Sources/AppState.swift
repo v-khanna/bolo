@@ -1578,6 +1578,21 @@ final class AppState: ObservableObject, @unchecked Sendable {
             }
         }
 
+        if role != .readSelection, binding.conflicts(with: readSelectionShortcut) {
+            return "This shortcut is already used by Read Selection Aloud."
+        }
+        if role == .readSelection {
+            if binding.conflicts(with: holdShortcut) {
+                return "Read Selection Aloud cannot share a shortcut with Hold to Talk."
+            }
+            if binding.conflicts(with: toggleShortcut) {
+                return "Read Selection Aloud cannot share a shortcut with Tap to Toggle."
+            }
+            if binding.conflicts(with: copyAgainShortcut) {
+                return "Read Selection Aloud cannot share a shortcut with Paste Again."
+            }
+        }
+
         switch role {
         case .hold:
             if binding.isCustom {
