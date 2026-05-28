@@ -1,16 +1,21 @@
 <p align="center">
-  <img src="Resources/AppIcon-Source.png" width="128" height="128" alt="FreeFlow icon">
+  <img src="Resources/AppIcon-Source.png" width="128" height="128" alt="Bolo icon">
 </p>
 
-<h1 align="center">FreeFlow</h1>
+<h1 align="center">Bolo</h1>
 
 <p align="center">
-  Free and open source alternative to <a href="https://wisprflow.ai">Wispr Flow</a>, <a href="https://superwhisper.com">Superwhisper</a>, and <a href="https://monologue.to">Monologue</a>.
+  A two-way voice app for macOS — <b>talk</b> (dictation) and <b>listen</b>.
+  Select text in any app and press a hotkey to hear it read aloud, or dictate
+  with your voice. Open source, MIT.
 </p>
 
 <p align="center">
-  <a href="https://github.com/zachlatta/freeflow/releases/latest/download/FreeFlow.dmg"><b>⬇ Download FreeFlow.dmg</b></a><br>
-  <sub>Works on all Macs (Apple Silicon + Intel)</sub>
+  Built on <a href="https://github.com/zachlatta/freeflow">FreeFlow</a> by
+  <a href="https://github.com/zachlatta">Zach Latta</a> (MIT). FreeFlow provides
+  the dictation half; Bolo adds read-aloud (text-to-speech) via Groq. Huge
+  thanks to the FreeFlow project — see the <code>upstream</code> remote and the
+  original docs below.
 </p>
 
 ---
