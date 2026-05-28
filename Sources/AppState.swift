@@ -1771,6 +1771,7 @@ final class AppState: ObservableObject, @unchecked Sendable {
         let speed = ttsSpeed
         let cleanup = ttsCleanupEnabled
         let expressive = ttsExpressiveEnabled
+        recordReadAloudHistory(text: text, snapshot: snapshot, voice: voice, speed: speed, cleanup: cleanup, expressive: expressive)
         if cleanup || expressive {
             // Normalize the text for speech first (expand abbreviations, strip
             // page-number junk, etc.; optionally add emotion tags), then speak.
@@ -2865,6 +2866,44 @@ final class AppState: ObservableObject, @unchecked Sendable {
         customSystemPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? PostProcessingService.defaultSystemPrompt
             : customSystemPrompt
+    }
+
+    /// Bolo addition: record a read-aloud event in the run log. Reuses the
+    /// `intent` field (`.readAloud`) so no Core Data migration is needed.
+    private func recordReadAloudHistory(
+        text: String,
+        snapshot: AppSelectionSnapshot,
+        voice: String,
+        speed: Double,
+        cleanup: Bool,
+        expressive: Bool
+    ) {
+        let status = "voice=\(voice) speed=\(String(format: "%.1f", speed))× cleanup=\(cleanup ? "on" : "off") expressive=\(expressive ? "on" : "off") chars=\(text.count)"
+        let entry = PipelineHistoryItem(
+            intent: .readAloud,
+            selectedText: String(text.prefix(4000)),
+            capturedSelection: nil,
+            timestamp: Date(),
+            rawTranscript: String(text.prefix(4000)),
+            postProcessedTranscript: "",
+            postProcessingPrompt: nil,
+            systemPrompt: nil,
+            contextSummary: "",
+            contextScreenshotDataURL: nil,
+            contextScreenshotStatus: "n/a",
+            postProcessingStatus: status,
+            debugStatus: "",
+            customVocabulary: "",
+            contextAppName: snapshot.appName,
+            contextBundleIdentifier: snapshot.bundleIdentifier,
+            contextWindowTitle: snapshot.windowTitle
+        )
+        do {
+            _ = try pipelineHistoryStore.append(entry, maxCount: maxPipelineHistoryCount)
+            pipelineHistory = pipelineHistoryStore.loadAllHistory()
+        } catch {
+            os_log(.error, log: recordingLog, "Failed to record read-aloud history: %@", error.localizedDescription)
+        }
     }
 
     private func recordPipelineHistoryEntry(

@@ -4,6 +4,7 @@ enum PipelineHistoryItemIntent: String, Codable {
     case dictation
     case commandAutomatic = "command:automatic"
     case commandManual = "command:manual"
+    case readAloud = "readAloud"
 }
 
 struct PipelineHistoryItem: Identifiable, Codable {
