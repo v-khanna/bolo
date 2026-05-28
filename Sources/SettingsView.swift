@@ -2932,5 +2932,114 @@ struct AboutSettingsView: View {
     }
 }
 
-// Temporary stub — replaced in Phase 3 of the Settings IA plan.
-struct SetupSettingsView: View { var body: some View { Text("Setup — TODO") } }
+// MARK: - Setup
+
+struct SetupSettingsView: View {
+    @EnvironmentObject var appState: AppState
+    @State private var accessibilityGranted = AXIsProcessTrusted()
+    @State private var micGranted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+
+    private var apiKeySet: Bool {
+        !appState.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+    private var shortcutsConfigured: Bool {
+        appState.hasEnabledHoldShortcut
+            || appState.hasEnabledToggleShortcut
+            || !appState.readSelectionShortcut.isDisabled
+    }
+    private var allGood: Bool {
+        accessibilityGranted && micGranted && apiKeySet && shortcutsConfigured
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                if allGood {
+                    SetupBanner()
+                }
+                SettingsCard("Setup", icon: "checkmark.seal.fill") {
+                    VStack(spacing: 0) {
+                        SetupRow(title: "Accessibility",
+                                 subtitle: "Required to read selected text & type.",
+                                 ok: accessibilityGranted, okLabel: "Granted") {
+                            appState.selectedSettingsTab = .general
+                        }
+                        Divider()
+                        SetupRow(title: "Microphone",
+                                 subtitle: "Required for dictation.",
+                                 ok: micGranted, okLabel: "Granted") {
+                            appState.selectedSettingsTab = .general
+                        }
+                        Divider()
+                        SetupRow(title: "Groq API Key",
+                                 subtitle: "Powers transcription and read-aloud.",
+                                 ok: apiKeySet, okLabel: "Set") {
+                            appState.selectedSettingsTab = .general
+                        }
+                        Divider()
+                        SetupRow(title: "Shortcuts",
+                                 subtitle: "Dictation and read-aloud hotkeys.",
+                                 ok: shortcutsConfigured, okLabel: "Configured") {
+                            appState.selectedSettingsTab = .dictation
+                        }
+                    }
+                }
+            }
+            .padding(24)
+        }
+        .onAppear {
+            accessibilityGranted = AXIsProcessTrusted()
+            micGranted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+        }
+    }
+}
+
+private struct SetupBanner: View {
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+                .font(.title2)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("All set!").font(.headline)
+                Text("Bolo is ready. Talk to type, or select text and press your read shortcut.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.green.opacity(0.10)))
+    }
+}
+
+private struct SetupRow: View {
+    let title: String
+    let subtitle: String
+    let ok: Bool
+    let okLabel: String
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(.body)
+                    Text(subtitle).font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text(ok ? okLabel : "Needs action")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(ok ? .green : .orange)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill((ok ? Color.green : Color.orange).opacity(0.14)))
+                Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
+            }
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
