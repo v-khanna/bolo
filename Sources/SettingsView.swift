@@ -516,6 +516,110 @@ struct DebugSettingsView: View {
 
 // MARK: - General Settings
 
+/// A GitHub repo card — avatar, repo name, star count, Star button, and a row
+/// of recent stargazers. Used identically for both Bolo and FreeFlow in About.
+struct GitHubRepoCard: View {
+    @ObservedObject var cache: GitHubMetadataCache
+    let repoLabel: String
+    let repoURL: URL
+    let avatarURL: URL?
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 8) {
+                AsyncImage(url: avatarURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().aspectRatio(contentMode: .fill)
+                    default:
+                        Color.gray.opacity(0.2)
+                    }
+                }
+                .frame(width: 22, height: 22)
+                .clipShape(Circle())
+
+                Button { openURL(repoURL) } label: {
+                    Text(repoLabel)
+                        .font(.system(.caption, design: .monospaced).weight(.medium))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.blue)
+
+                Spacer()
+
+                HStack(spacing: 4) {
+                    Image(systemName: "star.fill")
+                        .foregroundStyle(.yellow)
+                        .font(.caption2)
+                    if cache.isLoading {
+                        ProgressView().scaleEffect(0.5)
+                    } else if let count = cache.starCount {
+                        Text("\(count.formatted()) \(count == 1 ? "star" : "stars")")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Capsule().fill(Color.yellow.opacity(0.14)))
+
+                Button { openURL(repoURL) } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "star")
+                        Text("Star")
+                    }
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Capsule().fill(Color.yellow.opacity(0.18)))
+                }
+                .buttonStyle(.plain)
+            }
+
+            if !cache.recentStargazers.isEmpty {
+                Divider()
+                HStack(spacing: 8) {
+                    HStack(spacing: -6) {
+                        ForEach(cache.recentStargazers) { star in
+                            Button { openURL(star.user.htmlUrl) } label: {
+                                AsyncImage(url: star.user.avatarThumbnailUrl) { phase in
+                                    switch phase {
+                                    case .success(let image):
+                                        image.resizable().aspectRatio(contentMode: .fill)
+                                    default:
+                                        Color.gray.opacity(0.2)
+                                    }
+                                }
+                                .frame(width: 22, height: 22)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Color(nsColor: .windowBackgroundColor), lineWidth: 1.5))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .clipped()
+                    Text("recently starred")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .fixedSize()
+                    Spacer()
+                }
+                .clipped()
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                )
+        )
+    }
+}
+
 struct GeneralSettingsView: View {
     enum CardGroup { case general, voice, dictation }
     var group: CardGroup = .general
@@ -540,6 +644,7 @@ struct GeneralSettingsView: View {
     @State private var copiedBuildInfo = false
     @State private var copiedBuildInfoResetWorkItem: DispatchWorkItem?
     @StateObject private var githubCache = GitHubMetadataCache.shared
+    @StateObject private var boloGithubCache = GitHubMetadataCache.bolo
     @ObservedObject private var updateManager = UpdateManager.shared
     private let freeflowRepoURL = URL(string: "https://github.com/zachlatta/freeflow")!
     private let boloRepoURL = URL(string: "https://github.com/v-khanna/bolo")!
@@ -597,121 +702,26 @@ struct GeneralSettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
-                    // Bolo repo (this project)
-                    Button { openURL(boloRepoURL) } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "chevron.left.forwardslash.chevron.right")
-                                .font(.caption2)
-                            Text("v-khanna/bolo")
-                                .font(.system(.caption, design: .monospaced).weight(.semibold))
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.blue)
+                    // Bolo repo (this project) — same card format as FreeFlow.
+                    GitHubRepoCard(
+                        cache: boloGithubCache,
+                        repoLabel: "v-khanna/bolo",
+                        repoURL: boloRepoURL,
+                        avatarURL: URL(string: "https://github.com/v-khanna.png")
+                    )
                     .padding(.top, 2)
 
                     Text("Built on FreeFlow (MIT) — credit below")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
-                        .padding(.bottom, 2)
+                        .padding(.vertical, 2)
 
-                    // GitHub card
-                    VStack(spacing: 10) {
-                        HStack(spacing: 8) {
-                            AsyncImage(url: URL(string: "https://avatars.githubusercontent.com/u/992248")) { phase in
-                                switch phase {
-                                case .success(let image):
-                                    image.resizable().aspectRatio(contentMode: .fill)
-                                default:
-                                    Color.gray.opacity(0.2)
-                                }
-                            }
-                            .frame(width: 22, height: 22)
-                            .clipShape(Circle())
-
-                            Button {
-                                openURL(freeflowRepoURL)
-                            } label: {
-                                Text("zachlatta/freeflow")
-                                    .font(.system(.caption, design: .monospaced).weight(.medium))
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(.blue)
-
-                            Spacer()
-
-                            HStack(spacing: 4) {
-                                Image(systemName: "star.fill")
-                                    .foregroundStyle(.yellow)
-                                    .font(.caption2)
-                                if githubCache.isLoading {
-                                    ProgressView().scaleEffect(0.5)
-                                } else if let count = githubCache.starCount {
-                                    Text("\(count.formatted()) \(count == 1 ? "star" : "stars")")
-                                        .font(.caption2.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Capsule().fill(Color.yellow.opacity(0.14)))
-
-                            Button {
-                                openURL(freeflowRepoURL)
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "star")
-                                    Text("Star")
-                                }
-                                .font(.caption.weight(.semibold))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(Capsule().fill(Color.yellow.opacity(0.18)))
-                            }
-                            .buttonStyle(.plain)
-                        }
-
-                        if !githubCache.recentStargazers.isEmpty {
-                            Divider()
-                            HStack(spacing: 8) {
-                                HStack(spacing: -6) {
-                                    ForEach(githubCache.recentStargazers) { star in
-                                        Button {
-                                            openURL(star.user.htmlUrl)
-                                        } label: {
-                                            AsyncImage(url: star.user.avatarThumbnailUrl) { phase in
-                                                switch phase {
-                                                case .success(let image):
-                                                    image.resizable().aspectRatio(contentMode: .fill)
-                                                default:
-                                                    Color.gray.opacity(0.2)
-                                                }
-                                            }
-                                            .frame(width: 22, height: 22)
-                                            .clipShape(Circle())
-                                            .overlay(Circle().stroke(Color(nsColor: .windowBackgroundColor), lineWidth: 1.5))
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                                .clipped()
-                                Text("recently starred")
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                                    .fixedSize()
-                                Spacer()
-                            }
-                            .clipped()
-                        }
-                    }
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(.ultraThinMaterial)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                            )
+                    // FreeFlow (upstream) repo card.
+                    GitHubRepoCard(
+                        cache: githubCache,
+                        repoLabel: "zachlatta/freeflow",
+                        repoURL: freeflowRepoURL,
+                        avatarURL: URL(string: "https://avatars.githubusercontent.com/u/992248")
                     )
                 }
                 .frame(maxWidth: .infinity)
@@ -784,6 +794,7 @@ struct GeneralSettingsView: View {
             checkMicPermission()
             appState.refreshLaunchAtLoginStatus()
             Task { await githubCache.fetchIfNeeded() }
+            Task { await boloGithubCache.fetchIfNeeded() }
         }
         .onChange(of: appState.transcriptionAPIURL) { value in
             if transcriptionAPIURLInput != value {

@@ -1417,18 +1417,23 @@ struct GitHubContributor: Decodable, Identifiable {
 
 @MainActor
 class GitHubMetadataCache: ObservableObject {
-    static let shared = GitHubMetadataCache()
+    /// FreeFlow (upstream) — kept as `shared` for existing call sites.
+    static let shared = GitHubMetadataCache(repo: "zachlatta/freeflow")
+    /// Bolo (this project).
+    static let bolo = GitHubMetadataCache(repo: "v-khanna/bolo")
 
     @Published var starCount: Int?
     @Published var recentStargazers: [GitHubStarRecord] = []
     @Published var recentContributors: [GitHubContributor] = []
     @Published var isLoading = true
 
+    private let repo: String
     private var lastFetchDate: Date?
     private let cacheDuration: TimeInterval = 5 * 60 // 5 minutes
-    private let repoAPIURL = URL(string: "https://api.github.com/repos/zachlatta/freeflow")!
 
-    private init() {}
+    private init(repo: String) {
+        self.repo = repo
+    }
 
     func fetchIfNeeded() async {
         if let lastFetch = lastFetchDate, Date().timeIntervalSince(lastFetch) < cacheDuration {
@@ -1438,6 +1443,7 @@ class GitHubMetadataCache: ObservableObject {
         isLoading = true
 
         do {
+            let repoAPIURL = URL(string: "https://api.github.com/repos/\(repo)")!
             let repoResult = try await URLSession.shared.data(from: repoAPIURL)
             guard let repoHTTP = repoResult.1 as? HTTPURLResponse,
                   (200..<300).contains(repoHTTP.statusCode) else {
@@ -1449,7 +1455,7 @@ class GitHubMetadataCache: ObservableObject {
             if count > 0 {
                 let perPage = 100
                 let lastPage = max(1, Int(ceil(Double(count) / Double(perPage))))
-                let stargazersURL = URL(string: "https://api.github.com/repos/zachlatta/freeflow/stargazers?per_page=\(perPage)&page=\(lastPage)")!
+                let stargazersURL = URL(string: "https://api.github.com/repos/\(repo)/stargazers?per_page=\(perPage)&page=\(lastPage)")!
                 var request = URLRequest(url: stargazersURL)
                 request.setValue("application/vnd.github.v3.star+json", forHTTPHeaderField: "Accept")
                 let starredResult = try await URLSession.shared.data(for: request)
@@ -1461,7 +1467,7 @@ class GitHubMetadataCache: ObservableObject {
             }
 
             var contributors: [GitHubContributor] = []
-            let contributorsURL = URL(string: "https://api.github.com/repos/zachlatta/freeflow/contributors?per_page=15")!
+            let contributorsURL = URL(string: "https://api.github.com/repos/\(repo)/contributors?per_page=15")!
             do {
                 let contributorsResult = try await URLSession.shared.data(from: contributorsURL)
                 if let contribHTTP = contributorsResult.1 as? HTTPURLResponse,
