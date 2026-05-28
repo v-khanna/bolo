@@ -23,7 +23,8 @@ struct MenuBarLabel: View {
     private var iconName: String {
         if appState.isRecording { return "record.circle" }
         if appState.isTranscribing { return "ellipsis.circle" }
-        return "waveform"
+        // Bolo mark: speech bubble + play (distinct from FreeFlow's waveform).
+        return "play.bubble.fill"
     }
 
     var body: some View {
@@ -37,25 +38,33 @@ struct MenuBarLabel: View {
 }
 
 enum StampedMenuBarIcon {
+    /// Bolo mark: a rounded speech bubble (with a tail) and a play triangle
+    /// knocked out of it — distinct from FreeFlow's waveform. Template image so
+    /// the menu bar tints it for light/dark automatically.
     static let templateImage: NSImage = {
         let size = NSSize(width: 18, height: 16)
-        let image = NSImage(size: size, flipped: false) { rect in
+        let image = NSImage(size: size, flipped: false) { _ in
             let path = NSBezierPath()
             path.windingRule = .evenOdd
-            path.append(NSBezierPath(roundedRect: rect, xRadius: 3, yRadius: 3))
-            let bars: [(x: CGFloat, y: CGFloat, h: CGFloat)] = [
-                (3.0,  7.0,  2.0),
-                (5.5,  5.0,  6.0),
-                (8.0,  3.0, 10.0),
-                (10.5, 4.0,  8.0),
-                (13.0, 6.0,  4.0),
-            ]
-            for bar in bars {
-                path.append(NSBezierPath(
-                    roundedRect: NSRect(x: bar.x, y: bar.y, width: 1.5, height: bar.h),
-                    xRadius: 0.75, yRadius: 0.75
-                ))
-            }
+
+            // Speech bubble body (rounded rect) + a small tail at bottom-left.
+            let bubble = NSRect(x: 1.5, y: 3.5, width: 15, height: 11)
+            path.append(NSBezierPath(roundedRect: bubble, xRadius: 3.2, yRadius: 3.2))
+            let tail = NSBezierPath()
+            tail.move(to: NSPoint(x: 4.5, y: 4.2))
+            tail.line(to: NSPoint(x: 3.0, y: 1.0))
+            tail.line(to: NSPoint(x: 7.0, y: 4.2))
+            tail.close()
+            path.append(tail)
+
+            // Play triangle knocked out of the bubble (evenOdd winding).
+            let play = NSBezierPath()
+            play.move(to: NSPoint(x: 7.4, y: 5.6))
+            play.line(to: NSPoint(x: 7.4, y: 12.4))
+            play.line(to: NSPoint(x: 12.4, y: 9.0))
+            play.close()
+            path.append(play)
+
             NSColor.black.setFill()
             path.fill()
             return true
