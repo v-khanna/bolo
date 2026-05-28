@@ -703,6 +703,9 @@ struct GeneralSettingsView: View {
                 SettingsCard("Output Language", icon: "globe") {
                     outputLanguageSection
                 }
+                SettingsCard("Read Aloud", icon: "speaker.wave.2.fill") {
+                    readAloudSection
+                }
                 SettingsCard("Dictation Shortcuts", icon: "keyboard.fill") {
                     hotkeySection
                 }
@@ -1058,6 +1061,53 @@ struct GeneralSettingsView: View {
             .pickerStyle(.menu)
 
             Text("When set, FreeFlow translates your speech into the selected language.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    // MARK: Read Aloud (Bolo)
+
+    private var readAloudSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Picker("Voice", selection: $appState.ttsVoice) {
+                    ForEach(AppState.ttsVoiceOptions, id: \.self) { voice in
+                        Text(voice.capitalized).tag(voice)
+                    }
+                }
+                .pickerStyle(.menu)
+                .fixedSize()
+
+                Spacer()
+
+                Button {
+                    appState.testReadAloudVoice()
+                } label: {
+                    Label("Test Voice", systemImage: "speaker.wave.2.fill")
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("Speed")
+                        .font(.caption.weight(.semibold))
+                    Spacer()
+                    Text(String(format: "%.1f×", appState.ttsSpeed))
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                Slider(value: $appState.ttsSpeed, in: 0.5...2.0, step: 0.1)
+            }
+
+            Divider()
+
+            Toggle("Clean up text before speaking", isOn: $appState.ttsCleanupEnabled)
+            Text("Runs the selected text through an AI to expand abbreviations and units (“3s” → “3 seconds”), write out numbers, and skip page numbers / markdown. Slightly slower; great for articles, books, and PDFs.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Text("Select text in any app and press your Read Selection shortcut to hear it. Uses your Groq API key. Set the shortcut under Dictation Shortcuts below.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

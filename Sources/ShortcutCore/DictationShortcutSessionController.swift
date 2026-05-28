@@ -11,9 +11,10 @@ final class DictationShortcutSessionController {
     private(set) var toggleStopArmed = false
 
     func handle(event: ShortcutEvent, isTranscribing: Bool) -> DictationShortcutAction? {
-        // Paste Again is handled before this controller runs; if it ever
-        // reaches here, treat as a no-op so dictation state is unaffected.
-        if event == .copyAgainTriggered { return nil }
+        // Paste Again and Read Selection are handled before this controller
+        // runs; if either reaches here, treat as a no-op so dictation state is
+        // unaffected.
+        if event == .copyAgainTriggered || event == .readSelectionTriggered { return nil }
 
         if activeMode == nil {
             guard !isTranscribing else { return nil }
@@ -28,7 +29,7 @@ final class DictationShortcutSessionController {
                 return .start(.hold)
             case .holdDeactivated, .toggleDeactivated:
                 return nil
-            case .copyAgainTriggered:
+            case .copyAgainTriggered, .readSelectionTriggered:
                 return nil
             }
         }
@@ -47,7 +48,7 @@ final class DictationShortcutSessionController {
                 return .stop
             case .holdActivated, .toggleDeactivated:
                 return nil
-            case .copyAgainTriggered:
+            case .copyAgainTriggered, .readSelectionTriggered:
                 return nil
             }
 
@@ -62,7 +63,7 @@ final class DictationShortcutSessionController {
                 return .stop
             case .holdActivated, .holdDeactivated:
                 return nil
-            case .copyAgainTriggered:
+            case .copyAgainTriggered, .readSelectionTriggered:
                 return nil
             }
         }

@@ -209,6 +209,10 @@ final class AppState: ObservableObject, @unchecked Sendable {
     private let holdShortcutStorageKey = "hold_shortcut"
     private let toggleShortcutStorageKey = "toggle_shortcut"
     private let copyAgainShortcutStorageKey = "copy_again_shortcut"
+    private let readSelectionShortcutStorageKey = "read_selection_shortcut"
+    private let ttsVoiceStorageKey = "tts_voice"
+    private let ttsSpeedStorageKey = "tts_speed"
+    private let ttsCleanupStorageKey = "tts_cleanup"
     private let savedHoldCustomShortcutStorageKey = "saved_hold_custom_shortcut"
     private let savedToggleCustomShortcutStorageKey = "saved_toggle_custom_shortcut"
     private let savedCopyAgainCustomShortcutStorageKey = "saved_copy_again_custom_shortcut"
@@ -356,6 +360,39 @@ final class AppState: ObservableObject, @unchecked Sendable {
             restartHotkeyMonitoring()
         }
     }
+
+    /// Bolo addition: shortcut that reads the current text selection aloud.
+    @Published var readSelectionShortcut: ShortcutBinding {
+        didSet {
+            persistShortcut(readSelectionShortcut, key: readSelectionShortcutStorageKey)
+            restartHotkeyMonitoring()
+        }
+    }
+
+    /// Bolo addition: Orpheus voice for read-aloud (e.g. "troy", "hannah", "austin").
+    @Published var ttsVoice: String {
+        didSet {
+            AppSettingsStorage.save(ttsVoice, account: ttsVoiceStorageKey)
+        }
+    }
+
+    /// Bolo addition: read-aloud playback speed multiplier (0.5…2.0).
+    @Published var ttsSpeed: Double {
+        didSet {
+            UserDefaults.standard.set(ttsSpeed, forKey: ttsSpeedStorageKey)
+        }
+    }
+
+    /// Bolo addition: run selected text through an LLM to normalize it for
+    /// speech (expand abbreviations/units, strip page numbers/markdown) before
+    /// TTS. Off by default — adds ~0.5s latency.
+    @Published var ttsCleanupEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(ttsCleanupEnabled, forKey: ttsCleanupStorageKey)
+        }
+    }
+
+    static let ttsVoiceOptions: [String] = ["troy", "hannah", "austin"]
 
     @Published private(set) var savedHoldCustomShortcut: ShortcutBinding? {
         didSet {
@@ -530,6 +567,8 @@ final class AppState: ObservableObject, @unchecked Sendable {
         }
     }
     @Published var isTranscribing = false
+    /// Bolo addition: true while reading a selection aloud (cloud TTS playing).
+    @Published var isReadingAloud = false
     @Published var retryingItemIDs: Set<UUID> = []
     @Published var lastTranscript: String = ""
     @Published var errorMessage: String?
@@ -616,6 +655,10 @@ final class AppState: ObservableObject, @unchecked Sendable {
             toggleKey: toggleShortcutStorageKey,
             copyAgainKey: copyAgainShortcutStorageKey
         )
+        let readSelectionShortcut = Self.loadShortcut(forKey: readSelectionShortcutStorageKey).binding ?? .disabled
+        let ttsVoice = AppSettingsStorage.load(account: ttsVoiceStorageKey) ?? "troy"
+        let ttsSpeed = UserDefaults.standard.object(forKey: ttsSpeedStorageKey) as? Double ?? 1.0
+        let ttsCleanupEnabled = UserDefaults.standard.bool(forKey: ttsCleanupStorageKey)
         let savedHoldCustomShortcut = Self.loadSavedCustomShortcut(
             forKey: savedHoldCustomShortcutStorageKey,
             fallback: shortcuts.hold.isCustom ? shortcuts.hold : nil
@@ -710,6 +753,10 @@ final class AppState: ObservableObject, @unchecked Sendable {
         self.holdShortcut = shortcuts.hold
         self.toggleShortcut = shortcuts.toggle
         self.copyAgainShortcut = shortcuts.copyAgain
+        self.readSelectionShortcut = readSelectionShortcut
+        self.ttsVoice = ttsVoice
+        self.ttsSpeed = ttsSpeed
+        self.ttsCleanupEnabled = ttsCleanupEnabled
         self.savedHoldCustomShortcut = savedHoldCustomShortcut.binding
         self.savedToggleCustomShortcut = savedToggleCustomShortcut.binding
         self.savedCopyAgainCustomShortcut = savedCopyAgainCustomShortcut.binding
@@ -1432,6 +1479,8 @@ final class AppState: ObservableObject, @unchecked Sendable {
             return savedToggleCustomShortcut
         case .copyAgain:
             return savedCopyAgainCustomShortcut
+        case .readSelection:
+            return readSelectionShortcut.isCustom ? readSelectionShortcut : nil
         }
     }
 
@@ -1511,6 +1560,8 @@ final class AppState: ObservableObject, @unchecked Sendable {
                 savedCopyAgainCustomShortcut = binding
             }
             copyAgainShortcut = binding
+        case .readSelection:
+            readSelectionShortcut = binding
         }
 
         return nil
@@ -1614,6 +1665,7 @@ final class AppState: ObservableObject, @unchecked Sendable {
             hold: holdShortcut,
             toggle: toggleShortcut,
             copyAgain: copyAgainShortcut,
+            readSelection: readSelectionShortcut,
             permittedAdditionalExactMatchModifiers: permittedAdditionalExactMatchModifiers
         )
     }
@@ -1639,9 +1691,79 @@ final class AppState: ObservableObject, @unchecked Sendable {
             return
         }
 
+        if event == .readSelectionTriggered {
+            readSelectionAloud()
+            return
+        }
+
         guard let action = shortcutSessionController.handle(event: event, isTranscribing: isTranscribing) else {
             return
         }
+
+        handleDictationAction(action)
+    }
+
+    /// Bolo addition: read the current text selection aloud via cloud TTS.
+    /// Mutually exclusive with recording/transcribing. Reuses the same Groq key
+    /// and the recording overlay (in its `.reading` phase).
+    private func readSelectionAloud() {
+        guard !isRecording, !isTranscribing else { return }
+        let snapshot = contextService.collectSelectionSnapshot()
+        guard let text = snapshot.selectedText,
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            os_log(.info, log: recordingLog, "Read selection: nothing selected")
+            return
+        }
+        let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !key.isEmpty else {
+            os_log(.error, log: recordingLog, "Read selection: no API key set")
+            return
+        }
+        if isReadingAloud { SpeechSynthesisService.shared.cancel() }
+        isReadingAloud = true
+        overlayManager.showReading()
+        SpeechSynthesisService.shared.onAudioLevel = { [weak self] level in
+            self?.overlayManager.updateAudioLevel(level)
+        }
+        SpeechSynthesisService.shared.onFinished = { [weak self] in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.isReadingAloud = false
+                self.overlayManager.dismiss()
+            }
+        }
+
+        let voice = ttsVoice
+        let speed = ttsSpeed
+        let cleanup = ttsCleanupEnabled
+        if cleanup {
+            // Normalize the text for speech first (expand abbreviations, strip
+            // page-number junk, etc.), then speak. Cleanup failure falls back
+            // to the original text inside normalizeForSpeech.
+            Task { @MainActor in
+                let cleaned = await SpeechSynthesisService.shared.normalizeForSpeech(text: text, apiKey: key)
+                guard self.isReadingAloud else { return }   // user stopped during cleanup
+                SpeechSynthesisService.shared.speak(text: cleaned, apiKey: key, voice: voice, speed: speed)
+            }
+        } else {
+            SpeechSynthesisService.shared.speak(text: text, apiKey: key, voice: voice, speed: speed)
+        }
+    }
+
+    /// Bolo addition: play the fixed sample sentence to audition the current
+    /// voice + speed (the "Test Voice" button). No overlay; cached for speed.
+    func testReadAloudVoice() {
+        let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !key.isEmpty else {
+            os_log(.error, log: recordingLog, "Test voice: no API key set")
+            return
+        }
+        SpeechSynthesisService.shared.onAudioLevel = nil
+        SpeechSynthesisService.shared.onFinished = nil
+        SpeechSynthesisService.shared.speakSample(apiKey: key, voice: ttsVoice, speed: ttsSpeed)
+    }
+
+    private func handleDictationAction(_ action: DictationShortcutAction) {
 
         switch action {
         case .start(let mode):
@@ -1703,6 +1825,13 @@ final class AppState: ObservableObject, @unchecked Sendable {
     }
 
     private func handleOverlayStopButtonPressed() {
+        // Reading-aloud: stop cancels TTS playback and dismisses the overlay.
+        if isReadingAloud {
+            SpeechSynthesisService.shared.cancel()
+            isReadingAloud = false
+            overlayManager.dismiss()
+            return
+        }
         guard isRecording, activeRecordingTriggerMode == .toggle else { return }
         stopAndTranscribe()
     }

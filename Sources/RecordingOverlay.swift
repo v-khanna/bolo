@@ -17,6 +17,9 @@ enum OverlayPhase {
     case transcribing
     case feedback
     case updateAvailable
+    /// Bolo addition: reading the selection aloud (cloud TTS). Reuses the
+    /// recording look (waveform + stop) but is always stop-clickable.
+    case reading
 }
 
 // MARK: - NSScreen Helpers
@@ -124,6 +127,19 @@ final class RecordingOverlayManager {
     private var overlayAcceptsMouseEvents: Bool {
         (overlayState.phase == .recording && overlayState.recordingTriggerMode == .toggle)
             || overlayState.phase == .updateAvailable
+            || overlayState.phase == .reading
+    }
+
+    /// Bolo addition: show the overlay in its reading phase (waveform + stop).
+    func showReading() {
+        DispatchQueue.main.async {
+            self.lockedOverlayWidth = nil
+            self.overlayState.isCommandMode = false
+            self.overlayState.recordingTriggerMode = .toggle
+            self.overlayState.phase = .reading
+            self.overlayState.audioLevel = 0
+            self.showOverlayPanel(animatedResize: true)
+        }
     }
 
     func showInitializing(mode: RecordingTriggerMode = .hold, isCommandMode: Bool = false) {
@@ -306,7 +322,7 @@ final class RecordingOverlayManager {
         let useCompact = (UserDefaults.standard.object(forKey: "use_compact_overlay") as? Bool) ?? true
         guard useCompact else { return false }
         switch overlayState.phase {
-        case .recording, .initializing, .transcribing, .feedback:
+        case .recording, .initializing, .transcribing, .feedback, .reading:
             return true
         case .updateAvailable:
             return false
@@ -414,11 +430,12 @@ struct WingedRecordingView: View {
     let onStopButtonPressed: () -> Void
 
     private var showsLiveRecordingContent: Bool {
-        state.phase == .recording
+        state.phase == .recording || state.phase == .reading
     }
 
     private var showsStopButton: Bool {
-        showsLiveRecordingContent && state.recordingTriggerMode == .toggle
+        // Reading always shows a stop button; recording only in toggle mode.
+        state.phase == .reading || (state.phase == .recording && state.recordingTriggerMode == .toggle)
     }
 
     var body: some View {
@@ -453,7 +470,7 @@ struct WingedRecordingView: View {
                             }
                             CompactWaveformView(
                                 audioLevel: state.audioLevel,
-                                showsActivityPulse: state.phase == .recording
+                                showsActivityPulse: state.phase == .recording || state.phase == .reading
                             )
                         }
                         .transition(.opacity)
@@ -877,11 +894,11 @@ struct RecordingOverlayView: View {
     private let trailingAccessoryWidth: CGFloat = 32
 
     private var showsLiveRecordingContent: Bool {
-        state.phase == .recording
+        state.phase == .recording || state.phase == .reading
     }
 
     private var showsStopButton: Bool {
-        showsLiveRecordingContent && state.recordingTriggerMode == .toggle
+        state.phase == .reading || (state.phase == .recording && state.recordingTriggerMode == .toggle)
     }
 
     var body: some View {
