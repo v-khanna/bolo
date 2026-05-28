@@ -219,19 +219,29 @@ EXPRESSIVE MODE: You MAY insert these emotion tags, but only sparingly and only 
 
     private func startMetering() {
         stopMetering()
-        meterTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
-            guard let self, let player = self.player, player.isPlaying else { return }
-            player.updateMeters()
-            let db = player.averagePower(forChannel: 0)           // ~ -160 … 0 dB
-            // Map a useful vocal range (-50…0 dB) to 0…1, with a little gain.
-            let level = max(0, min(1, (db + 50) / 50)) * 1.15
-            self.onAudioLevel?(Float(min(1, level)))
+        // Schedule on the MAIN run loop: startMetering can be called off the
+        // main thread (playAndWait's continuation runs on a background
+        // executor), and a Timer added to a non-running background run loop
+        // never fires — which left the waveform stuck on its idle animation.
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let timer = Timer(timeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
+                guard let self, let player = self.player, player.isPlaying else { return }
+                player.updateMeters()
+                let db = player.averagePower(forChannel: 0)           // ~ -160 … 0 dB
+                // Map a useful vocal range (-50…0 dB) to 0…1, with a little gain.
+                let level = max(0, min(1, (db + 50) / 50)) * 1.15
+                self.onAudioLevel?(Float(min(1, level)))
+            }
+            RunLoop.main.add(timer, forMode: .common)
+            self.meterTimer = timer
         }
     }
 
     private func stopMetering() {
-        meterTimer?.invalidate()
+        let timer = meterTimer
         meterTimer = nil
+        DispatchQueue.main.async { timer?.invalidate() }
     }
 
     // MARK: - Cache

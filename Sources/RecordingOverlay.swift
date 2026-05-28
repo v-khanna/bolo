@@ -590,7 +590,9 @@ struct WaveformView: View {
         let quietPulse = (1.0 - baseAmplitude) * (0.04 + pulse * 0.28)
         let metered = min(saturationRelief + quietPulse, 1.0)
         guard strongIdle else { return metered }
-        let idle = Self.multipliers[index] * (0.30 + 0.50 * travelingWave)
+        // Faint floor so the bars show a gentle "preparing" shimmer before
+        // audio arrives; the metered voice dominates once playback starts.
+        let idle = Self.multipliers[index] * (0.06 + 0.10 * travelingWave)
         return min(max(metered, idle), 1.0)
     }
 
@@ -654,7 +656,9 @@ struct CompactWaveformView: View {
         let quietPulse = (1.0 - base) * (0.04 + pulse * 0.28)
         let metered = min(saturationRelief + quietPulse, 1.0)
         guard strongIdle else { return metered }
-        let idle = Self.multipliers[index] * (0.30 + 0.50 * traveling)
+        // Faint floor so the bars show a gentle "preparing" shimmer before
+        // audio arrives; the metered voice dominates once playback starts.
+        let idle = Self.multipliers[index] * (0.06 + 0.10 * traveling)
         return min(max(metered, idle), 1.0)
     }
 }
