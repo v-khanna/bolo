@@ -1167,6 +1167,26 @@ struct GeneralSettingsView: View {
             Text("Select text in any app and press your Read Selection shortcut (above) to hear it. Uses your Groq API key.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Prefer fully on-device?")
+                    .font(.caption.weight(.semibold))
+                Text("Bolo Local runs read-aloud entirely on your Mac with a from-scratch MLX-Swift TTS engine — no cloud, no API key. Trade-off: ~3 GB model download, more RAM, and noticeably slower than cloud.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button {
+                    openURL(URL(string: "https://github.com/v-khanna/bolo-local")!)
+                } label: {
+                    Label("Get Bolo Local", systemImage: "arrow.down.circle")
+                        .font(.caption.weight(.medium))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.blue)
+                .padding(.top, 2)
+            }
         }
     }
 

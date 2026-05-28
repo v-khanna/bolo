@@ -40,6 +40,25 @@ speech.
 > like saying *"go on, say it."* It felt right for an app that's all about
 > turning speech into text and text back into speech.
 
+## Want it fully on-device?
+
+Bolo's read-aloud uses cloud TTS (Groq) by default — fast (~1s) and nothing to
+download. If you'd rather run **read-aloud entirely on your Mac**, there's a
+companion build powered by a **from-scratch MLX-Swift port of Chatterbox-Turbo**
+— the genuinely hard part of this project: a full on-device TTS pipeline (a
+GPT-2-style T3 transformer → S3Gen token-to-mel decoder → HiFT vocoder),
+validated against the reference with six numerical parity gates, running in 4-bit
+with a KV cache.
+
+→ **[Bolo Local](https://github.com/v-khanna/bolo-local)** — on-device read-aloud
+(~3 GB model download, more RAM, slower than cloud, but 100% offline).
+The engine port and how it was built: **[writeup](https://github.com/v-khanna/bolo-local/blob/main/docs/WRITEUP.md)**.
+
+> **Planned (not yet built):** on-device *dictation* too — via WhisperKit + a
+> local LLM. (Speech-to-text is a different model from the TTS engine above;
+> none of the Chatterbox code transfers — it'd reuse the out-of-process engine
+> pattern, not the model.)
+
 ## Quick Start
 
 1. **Build or download** the app (see [Building](#building) below).
