@@ -50,9 +50,9 @@ GPT-2-style T3 transformer → S3Gen token-to-mel decoder → HiFT vocoder),
 validated against the reference with six numerical parity gates, running in 4-bit
 with a KV cache.
 
-→ **[Bolo Local](https://github.com/v-khanna/bolo-local)** — on-device read-aloud
+→ **[Bolo Local](https://github.com/v-khanna/bololocal)** — on-device read-aloud
 (~3 GB model download, more RAM, slower than cloud, but 100% offline).
-The engine port and how it was built: **[writeup](https://github.com/v-khanna/bolo-local/blob/main/docs/WRITEUP.md)**.
+The engine port and how it was built: **[writeup](https://github.com/v-khanna/bololocal/blob/main/docs/WRITEUP.md)**.
 
 > **Planned (not yet built):** on-device *dictation* too — via WhisperKit + a
 > local LLM. (Speech-to-text is a different model from the TTS engine above;

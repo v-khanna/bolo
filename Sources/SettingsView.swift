@@ -1178,7 +1178,7 @@ struct GeneralSettingsView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Button {
-                    openURL(URL(string: "https://github.com/v-khanna/bolo-local")!)
+                    openURL(URL(string: "https://github.com/v-khanna/bololocal")!)
                 } label: {
                     Label("Get Bolo Local", systemImage: "arrow.down.circle")
                         .font(.caption.weight(.medium))
@@ -2907,7 +2907,7 @@ struct AboutSettingsView: View {
     @StateObject private var boloGithubCache = GitHubMetadataCache.bolo
     private let freeflowRepoURL = URL(string: "https://github.com/zachlatta/freeflow")!
     private let boloRepoURL = URL(string: "https://github.com/v-khanna/bolo")!
-    private let boloLocalURL = URL(string: "https://github.com/v-khanna/bolo-local")!
+    private let boloLocalURL = URL(string: "https://github.com/v-khanna/bololocal")!
 
     private var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
