@@ -1876,6 +1876,14 @@ final class AppState: ObservableObject, @unchecked Sendable {
         }
     }
 
+    /// Bolo addition: stop read-aloud playback (used by the menu bar + overlay).
+    func stopReadingAloud() {
+        guard isReadingAloud else { return }
+        SpeechSynthesisService.shared.cancel()
+        isReadingAloud = false
+        overlayManager.dismiss()
+    }
+
     private func handleOverlayStopButtonPressed() {
         // Reading-aloud: stop cancels TTS playback and dismisses the overlay.
         if isReadingAloud {

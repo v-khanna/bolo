@@ -102,12 +102,22 @@ struct MenuBarView: View {
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 6)
-            } else {
-                Text(appState.shortcutStatusText)
-                    .foregroundStyle(.secondary)
-                    .font(.caption)
+            } else if appState.isReadingAloud {
+                Label("Reading aloud...", systemImage: "speaker.wave.2.fill")
+                    .foregroundStyle(.purple)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 6)
+            } else {
+                VStack(spacing: 2) {
+                    Text(appState.shortcutStatusText)
+                    if !appState.readSelectionShortcut.isDisabled {
+                        Text("Press \(appState.readSelectionShortcut.displayName) to read selection")
+                    }
+                }
+                .foregroundStyle(.secondary)
+                .font(.caption)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
             }
 
             Divider()
@@ -117,6 +127,12 @@ struct MenuBarView: View {
                 appState.toggleRecording()
             }
             .disabled(appState.isTranscribing)
+
+            if appState.isReadingAloud {
+                Button("Stop Reading Aloud") {
+                    appState.stopReadingAloud()
+                }
+            }
 
             if let hotkeyError = appState.hotkeyMonitoringErrorMessage {
                 Divider()
@@ -219,7 +235,7 @@ struct MenuBarView: View {
 
                 Divider()
                 Button("Customize…") {
-                    appState.selectedSettingsTab = .general
+                    appState.selectedSettingsTab = .dictation
                     NotificationCenter.default.post(name: .showSettings, object: nil)
                 }
             }
@@ -263,7 +279,7 @@ struct MenuBarView: View {
 
                 Divider()
                 Button("Customize…") {
-                    appState.selectedSettingsTab = .general
+                    appState.selectedSettingsTab = .dictation
                     NotificationCenter.default.post(name: .showSettings, object: nil)
                 }
             }
@@ -307,7 +323,7 @@ struct MenuBarView: View {
 
                 Divider()
                 Button("Customize…") {
-                    appState.selectedSettingsTab = .general
+                    appState.selectedSettingsTab = .dictation
                     NotificationCenter.default.post(name: .showSettings, object: nil)
                 }
             }
@@ -332,6 +348,26 @@ struct MenuBarView: View {
                             Text("  \(device.name)")
                         }
                     }
+                }
+            }
+
+            Menu("Read Aloud Voice") {
+                ForEach(AppState.ttsVoiceOptions, id: \.self) { voice in
+                    Button {
+                        appState.ttsVoice = voice
+                    } label: {
+                        if appState.ttsVoice == voice {
+                            Text("✓ \(voice.capitalized)")
+                        } else {
+                            Text("  \(voice.capitalized)")
+                        }
+                    }
+                }
+
+                Divider()
+                Button("Read Aloud Settings…") {
+                    appState.selectedSettingsTab = .readAloud
+                    NotificationCenter.default.post(name: .showSettings, object: nil)
                 }
             }
 
