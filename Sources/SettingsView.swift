@@ -661,11 +661,7 @@ struct GeneralSettingsView: View {
     @State private var showMutedHint = false
     @State private var copiedBuildInfo = false
     @State private var copiedBuildInfoResetWorkItem: DispatchWorkItem?
-    @StateObject private var githubCache = GitHubMetadataCache.shared
-    @StateObject private var boloGithubCache = GitHubMetadataCache.bolo
     @ObservedObject private var updateManager = UpdateManager.shared
-    private let freeflowRepoURL = URL(string: "https://github.com/zachlatta/freeflow")!
-    private let boloRepoURL = URL(string: "https://github.com/v-khanna/bolo")!
 
     private var appDisplayName: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
@@ -705,53 +701,8 @@ struct GeneralSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                if page == .general {
-                // App branding header
-                VStack(spacing: 12) {
-                    Image(nsImage: NSApp.applicationIconImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 64, height: 64)
-
-                    Text(AppName.displayName)
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
-
-                    Text("v\(appVersion)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    // Bolo repo (this project) — same card format as FreeFlow.
-                    GitHubRepoCard(
-                        cache: boloGithubCache,
-                        repoLabel: "v-khanna/bolo",
-                        repoURL: boloRepoURL,
-                        avatarURL: URL(string: "https://github.com/v-khanna.png")
-                    )
-                    .padding(.top, 2)
-
-                    Text("Built on FreeFlow (MIT) — credit below")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .padding(.vertical, 2)
-
-                    // FreeFlow (upstream) repo card.
-                    GitHubRepoCard(
-                        cache: githubCache,
-                        repoLabel: "zachlatta/freeflow",
-                        repoURL: freeflowRepoURL,
-                        avatarURL: URL(string: "https://avatars.githubusercontent.com/u/992248")
-                    )
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.top, 4)
-                .padding(.bottom, 4)
-                }
-
                 switch page {
                 case .general:
-                    SettingsCard("About Bolo", icon: "info.circle") {
-                        aboutSection
-                    }
                     SettingsCard("App", icon: "power") {
                         startupSection
                     }
@@ -811,8 +762,6 @@ struct GeneralSettingsView: View {
             customVocabularyInput = appState.customVocabulary
             checkMicPermission()
             appState.refreshLaunchAtLoginStatus()
-            Task { await githubCache.fetchIfNeeded() }
-            Task { await boloGithubCache.fetchIfNeeded() }
         }
         .onChange(of: appState.transcriptionAPIURL) { value in
             if transcriptionAPIURLInput != value {
@@ -827,46 +776,6 @@ struct GeneralSettingsView: View {
     }
 
     // MARK: Startup
-
-    private var aboutSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Bolo is a two-way voice app for your Mac. Press one shortcut and talk — your words get cleaned up and typed into whatever you're using. Select any text, press another shortcut, and Bolo reads it back to you in a natural voice.")
-                .font(.callout)
-                .foregroundStyle(.primary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text("“Bolo” (बोलो) is Hindi for “speak” — the imperative, like saying “go on, say it.” It felt right for an app that's all about turning speech into text and text back into speech.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Built on FreeFlow")
-                    .font(.callout.weight(.semibold))
-                Text("The “talk” half of Bolo is FreeFlow by Zach Latta (MIT) — a wonderful open-source dictation app. Bolo adds the “listen” half: read-aloud via Groq. Huge thanks to FreeFlow and its maintainers.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: 14) {
-                    Button { openURL(boloRepoURL) } label: {
-                        Label("Bolo on GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
-                            .font(.caption.weight(.medium))
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.blue)
-                    Button { openURL(freeflowRepoURL) } label: {
-                        Label("FreeFlow on GitHub", systemImage: "arrow.up.forward.square")
-                            .font(.caption.weight(.medium))
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.blue)
-                }
-                .padding(.top, 2)
-            }
-        }
-    }
 
     private var startupSection: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -2918,6 +2827,110 @@ struct VoiceMacroEditorView: View {
     }
 }
 
-// Temporary stubs — replaced in Phase 2/3 of the Settings IA plan.
-struct AboutSettingsView: View { var body: some View { Text("About — TODO") } }
+// MARK: - About
+
+struct AboutSettingsView: View {
+    @Environment(\.openURL) private var openURL
+    @StateObject private var githubCache = GitHubMetadataCache.shared
+    @StateObject private var boloGithubCache = GitHubMetadataCache.bolo
+    private let freeflowRepoURL = URL(string: "https://github.com/zachlatta/freeflow")!
+    private let boloRepoURL = URL(string: "https://github.com/v-khanna/bolo")!
+
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                VStack(spacing: 12) {
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 64, height: 64)
+
+                    Text(AppName.displayName)
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+
+                    Text("v\(appVersion)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    GitHubRepoCard(
+                        cache: boloGithubCache,
+                        repoLabel: "v-khanna/bolo",
+                        repoURL: boloRepoURL,
+                        avatarURL: URL(string: "https://github.com/v-khanna.png")
+                    )
+                    .padding(.top, 2)
+
+                    Text("Built on FreeFlow (MIT) — credit below")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .padding(.vertical, 2)
+
+                    GitHubRepoCard(
+                        cache: githubCache,
+                        repoLabel: "zachlatta/freeflow",
+                        repoURL: freeflowRepoURL,
+                        avatarURL: URL(string: "https://avatars.githubusercontent.com/u/992248")
+                    )
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 4)
+
+                SettingsCard("About Bolo", icon: "info.circle") {
+                    aboutSection
+                }
+            }
+            .padding(24)
+        }
+        .onAppear {
+            Task { await githubCache.fetchIfNeeded() }
+            Task { await boloGithubCache.fetchIfNeeded() }
+        }
+    }
+
+    private var aboutSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Bolo is a two-way voice app for your Mac. Press one shortcut and talk — your words get cleaned up and typed into whatever you're using. Select any text, press another shortcut, and Bolo reads it back to you in a natural voice.")
+                .font(.callout)
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("“Bolo” (बोलो) is Hindi for “speak” — the imperative, like saying “go on, say it.” It felt right for an app that's all about turning speech into text and text back into speech.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Built on FreeFlow")
+                    .font(.callout.weight(.semibold))
+                Text("The “talk” half of Bolo is FreeFlow by Zach Latta (MIT) — a wonderful open-source dictation app. Bolo adds the “listen” half: read-aloud via Groq. Huge thanks to FreeFlow and its maintainers.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 14) {
+                    Button { openURL(boloRepoURL) } label: {
+                        Label("Bolo on GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+                            .font(.caption.weight(.medium))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.blue)
+                    Button { openURL(freeflowRepoURL) } label: {
+                        Label("FreeFlow on GitHub", systemImage: "arrow.up.forward.square")
+                            .font(.caption.weight(.medium))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.blue)
+                }
+                .padding(.top, 2)
+            }
+        }
+    }
+}
+
+// Temporary stub — replaced in Phase 3 of the Settings IA plan.
 struct SetupSettingsView: View { var body: some View { Text("Setup — TODO") } }
