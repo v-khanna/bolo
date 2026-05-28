@@ -2076,6 +2076,22 @@ struct PromptsSettingsView: View {
 struct RunLogView: View {
     @EnvironmentObject var appState: AppState
 
+    private enum RunLogFilter: String, CaseIterable, Identifiable {
+        case all = "All"
+        case dictation = "Dictation"
+        case readAloud = "Read Aloud"
+        var id: String { rawValue }
+    }
+    @State private var filter: RunLogFilter = .all
+
+    private var filteredHistory: [PipelineHistoryItem] {
+        switch filter {
+        case .all: return appState.pipelineHistory
+        case .readAloud: return appState.pipelineHistory.filter { $0.intent == .readAloud }
+        case .dictation: return appState.pipelineHistory.filter { $0.intent != .readAloud }
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack {
@@ -2096,12 +2112,20 @@ struct RunLogView: View {
             .padding(.top, 20)
             .padding(.bottom, 12)
 
+            Picker("", selection: $filter) {
+                ForEach(RunLogFilter.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .padding(.horizontal, 24)
+            .padding(.bottom, 12)
+
             Divider()
 
-            if appState.pipelineHistory.isEmpty {
+            if filteredHistory.isEmpty {
                 VStack {
                     Spacer()
-                    Text("No runs yet. Use dictation to populate history.")
+                    Text(emptyStateText)
                         .foregroundStyle(.secondary)
                     Spacer()
                 }
@@ -2109,13 +2133,21 @@ struct RunLogView: View {
             } else {
                 ScrollView {
                     VStack(spacing: 12) {
-                        ForEach(appState.pipelineHistory) { item in
+                        ForEach(filteredHistory) { item in
                             RunLogEntryView(item: item)
                         }
                     }
                     .padding(20)
                 }
             }
+        }
+    }
+
+    private var emptyStateText: String {
+        switch filter {
+        case .all: return "No runs yet. Use dictation or read-aloud to populate history."
+        case .dictation: return "No dictation runs yet."
+        case .readAloud: return "No read-aloud runs yet."
         }
     }
 }
@@ -2169,6 +2201,49 @@ struct RunLogEntryView: View {
     }
 
     var body: some View {
+        if item.intent == .readAloud {
+            readAloudBody
+        } else {
+            dictationBody
+        }
+    }
+
+    private var readAloudBody: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "speaker.wave.2.fill")
+                .font(.caption)
+                .foregroundStyle(.purple)
+                .frame(width: actionIconSize, height: actionIconSize)
+                .background(RoundedRectangle(cornerRadius: 6).fill(Color.purple.opacity(0.12)))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.rawTranscript.isEmpty ? "(read aloud)" : item.rawTranscript)
+                    .font(.callout)
+                    .lineLimit(3)
+                    .foregroundStyle(.primary)
+                HStack(spacing: 8) {
+                    if let app = item.contextAppName, !app.isEmpty {
+                        Label(app, systemImage: "app.dashed")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(item.timestamp, style: .time)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+                if !item.postProcessingStatus.isEmpty {
+                    Text(item.postProcessingStatus)
+                        .font(.caption2.monospaced())
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 10).fill(Color(nsColor: .controlBackgroundColor)))
+    }
+
+    private var dictationBody: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Collapsed header
             HStack(spacing: 0) {
