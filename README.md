@@ -24,6 +24,17 @@
   <img src="Resources/demo.gif" alt="Bolo demo" width="600">
 </p>
 
+## Download
+
+**[⬇︎ Download Bolo.dmg](https://github.com/v-khanna/bolo/releases/latest/download/Bolo.dmg)** — Apple Silicon, macOS 13+.
+
+Bolo isn't notarized by Apple yet, so macOS will warn you the first time. To open it:
+
+1. Open the `.dmg` and drag **Bolo** into **Applications**.
+2. **Right-click** Bolo in Applications → **Open** → **Open** (only needed once).
+
+Then walk through the ~1-minute in-app setup (you'll paste a free Groq API key — there's a button that takes you straight to it).
+
 ## What is Bolo?
 
 **Bolo** does two things, both from a global hotkey, anywhere on your Mac:
