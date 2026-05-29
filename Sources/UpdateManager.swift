@@ -266,12 +266,14 @@ final class UpdateManager: ObservableObject {
 
             let semanticReleases = releaseCandidates(from: releases)
             guard let latestSemanticRelease = semanticReleases.last else {
+                // No published semver releases yet (e.g. a fresh repo). That's
+                // not an error — there's simply nothing newer to install.
                 updateAvailable = false
                 latestRelease = nil
                 latestReleaseVersion = ""
                 latestReleaseDate = ""
                 if userInitiated {
-                    showErrorAlert("No semantic version release was found.")
+                    showUpToDateAlert()
                 }
                 return
             }
