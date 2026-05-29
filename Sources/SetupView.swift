@@ -393,22 +393,35 @@ struct SetupView: View {
                     .font(.title)
                     .fontWeight(.bold)
 
-                Text("Enter an API key for your OpenAI-compatible provider. If you are not using Groq, expand the advanced provider settings and enter that provider's base URL and model IDs before continuing.")
+                Text("Bolo uses Groq — a free AI service — to turn your voice into text and text into speech. Paste a free key below. It's stored only on your Mac and is never shared.")
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 VStack(alignment: .leading, spacing: 10) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Using Groq?")
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Get your free key (about 30 seconds)")
                             .font(.subheadline.weight(.semibold))
                         VStack(alignment: .leading, spacing: 2) {
-                            instructionRow(number: "1", text: "Go to [console.groq.com/keys](https://console.groq.com/keys)")
-                            instructionRow(number: "2", text: "Create a free account (if you don't have one)")
-                            instructionRow(number: "3", text: "Click **Create API Key** and copy it")
+                            instructionRow(number: "1", text: "Tap the button below to open Groq")
+                            instructionRow(number: "2", text: "Sign in (Google or email — it's free, no card)")
+                            instructionRow(number: "3", text: "Click **Create API Key**, then copy it")
+                            instructionRow(number: "4", text: "Come back here and paste it below")
                         }
+                        Button {
+                            if let url = URL(string: "https://console.groq.com/keys") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        } label: {
+                            Label("Get your free Groq key", systemImage: "arrow.up.forward.app")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .padding(.top, 2)
                     }
-                    .padding(10)
+                    .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
                         RoundedRectangle(cornerRadius: 8)
